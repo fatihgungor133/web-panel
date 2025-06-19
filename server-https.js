@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const moment = require('moment');
 const db = require('./db');
+const activityLogger = require('./activity-logger');
 
 const app = express();
 const HTTPS_PORT = process.env.HTTPS_PORT || 443;

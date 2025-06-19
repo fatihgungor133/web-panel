@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const moment = require('moment');
 const db = require('./db');
+const activityLogger = require('./activity-logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,9 +106,13 @@ const defaultUsers = {
 app.get('/', requireAuth, async (req, res) => {
     try {
         const stats = await getSystemStats();
+        const recentActivities = await activityLogger.getRecentActivities(8);
+        
         res.render('dashboard', { 
             username: req.session.username,
             stats,
+            activities: recentActivities,
+            activityLogger,
             moment
         });
     } catch (error) {
@@ -115,6 +120,8 @@ app.get('/', requireAuth, async (req, res) => {
         res.render('dashboard', { 
             username: req.session.username,
             stats: {},
+            activities: [],
+            activityLogger,
             moment
         });
     }
@@ -140,6 +147,9 @@ app.post('/login', async (req, res) => {
             console.log('Kullanıcı klasörü zaten mevcut');
         }
         
+        // Giriş aktivitesini kaydet
+        await activityLogger.logLogin(username, req.ip);
+        
         res.redirect('/');
     } else {
         res.render('login', { error: 'Geçersiz kullanıcı adı veya şifre!' });
@@ -147,30 +157,103 @@ app.post('/login', async (req, res) => {
 });
 
 // Çıkış
-app.get('/logout', (req, res) => {
+app.get('/logout', async (req, res) => {
+    const username = req.session.username;
+    
+    // Çıkış aktivitesini kaydet
+    if (username) {
+        await activityLogger.logLogout(username);
+    }
+    
     req.session.destroy();
     res.redirect('/login');
 });
 
-// Sistem istatistikleri
+// Gerçek sistem istatistikleri
 async function getSystemStats() {
     const stats = {
         diskUsage: '0 GB',
+        diskUsagePercent: 0,
         memoryUsage: '0 MB',
+        memoryUsagePercent: 0,
+        cpuUsage: 0,
         uptime: process.uptime(),
+        systemUptime: 0,
         nodeVersion: process.version,
-        platform: process.platform
+        platform: process.platform,
+        loadAverage: [0, 0, 0],
+        activeConnections: 0,
+        totalFiles: 0,
+        totalDatabases: 0,
+        totalEmails: 0,
+        totalDomains: 0
     };
     
     try {
-        // Disk kullanımı (basit hesaplama)
-        const userFilesPath = path.join(__dirname, 'user_files');
-        const size = await getDirSize(userFilesPath);
-        stats.diskUsage = formatBytes(size);
+        // Sistem bellek bilgileri
+        const { execSync } = require('child_process');
         
-        // Bellek kullanımı
-        const memUsage = process.memoryUsage();
-        stats.memoryUsage = formatBytes(memUsage.rss);
+        // RAM kullanımı (Linux)
+        if (process.platform === 'linux') {
+            const memInfo = execSync('cat /proc/meminfo').toString();
+            const memTotal = parseInt(memInfo.match(/MemTotal:\s+(\d+)/)[1]) * 1024;
+            const memFree = parseInt(memInfo.match(/MemFree:\s+(\d+)/)[1]) * 1024;
+            const memAvailable = parseInt(memInfo.match(/MemAvailable:\s+(\d+)/)[1]) * 1024;
+            const memUsed = memTotal - memAvailable;
+            
+            stats.memoryUsage = formatBytes(memUsed);
+            stats.memoryUsagePercent = Math.round((memUsed / memTotal) * 100);
+            stats.memoryTotal = formatBytes(memTotal);
+        } else {
+            // Node.js process bellek kullanımı (fallback)
+            const memUsage = process.memoryUsage();
+            stats.memoryUsage = formatBytes(memUsage.rss);
+        }
+        
+        // Disk kullanımı (Linux)
+        if (process.platform === 'linux') {
+            const diskInfo = execSync('df -h /').toString().split('\n')[1].split(/\s+/);
+            stats.diskUsage = diskInfo[2];
+            stats.diskTotal = diskInfo[1];
+            stats.diskUsagePercent = parseInt(diskInfo[4].replace('%', ''));
+        } else {
+            // Fallback: user_files boyutu
+            const userFilesPath = path.join(__dirname, 'user_files');
+            const size = await getDirSize(userFilesPath);
+            stats.diskUsage = formatBytes(size);
+        }
+        
+        // CPU kullanımı (ortalama load)
+        const loadAvg = require('os').loadavg();
+        stats.loadAverage = loadAvg.map(load => Math.round(load * 100) / 100);
+        stats.cpuUsage = Math.round(loadAvg[0] * 100);
+        
+        // Sistem uptime
+        stats.systemUptime = require('os').uptime();
+        
+        // Panel verileri
+        const databases = await db.getData('databases') || [];
+        const emails = await db.getData('email_accounts') || [];
+        const domains = await db.getData('domains') || [];
+        
+        stats.totalDatabases = databases.length;
+        stats.totalEmails = emails.length;
+        stats.totalDomains = domains.length;
+        
+        // Dosya sayısı
+        const userFilesPath = path.join(__dirname, 'user_files');
+        stats.totalFiles = await countFiles(userFilesPath);
+        
+        // Aktif bağlantılar (Linux)
+        if (process.platform === 'linux') {
+            try {
+                const connections = execSync('netstat -an | grep :443 | grep ESTABLISHED | wc -l').toString().trim();
+                stats.activeConnections = parseInt(connections) || 0;
+            } catch (e) {
+                stats.activeConnections = 0;
+            }
+        }
+        
     } catch (error) {
         console.error('İstatistikler alınırken hata:', error);
     }
@@ -198,6 +281,41 @@ async function getDirSize(dirPath) {
     return size;
 }
 
+// Dosya sayısını hesapla
+async function countFiles(dirPath) {
+    let count = 0;
+    try {
+        const files = await fs.readdir(dirPath);
+        for (const file of files) {
+            const filePath = path.join(dirPath, file);
+            const stat = await fs.stat(filePath);
+            if (stat.isDirectory()) {
+                count += await countFiles(filePath);
+            } else {
+                count++;
+            }
+        }
+    } catch (error) {
+        return 0;
+    }
+    return count;
+}
+
+// Uptime formatla
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) {
+        return `${days}g ${hours}s`;
+    } else if (hours > 0) {
+        return `${hours}s ${minutes}d`;
+    } else {
+        return `${minutes}d`;
+    }
+}
+
 // Byte formatla
 function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
@@ -219,6 +337,9 @@ app.use('/backup', requireAuth, require('./routes/backup'));
 app.listen(PORT, async () => {
     await ensureUserDirectories();
     await db.initializeData(); // Veritabanını başlat
+    
+    // Sistem başlangıç aktivitesini kaydet
+    await activityLogger.logSystemStart();
     
     // IP checker'ı kullan
     const { getServerIP } = require('./ip-checker');

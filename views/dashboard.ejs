@@ -91,39 +91,72 @@
                 <!-- Sistem İstatistikleri -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white rounded-lg shadow-md p-6 card-hover">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                                <i class="fas fa-hdd text-xl"></i>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                    <i class="fas fa-hdd text-xl"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Disk Kullanımı</p>
+                                    <p class="text-2xl font-bold text-gray-900"><%= stats.diskUsage || '0 GB' %></p>
+                                    <% if (stats.diskTotal) { %>
+                                        <p class="text-xs text-gray-500"><%= stats.diskTotal %> toplam</p>
+                                    <% } %>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Disk Kullanımı</p>
-                                <p class="text-2xl font-bold text-gray-900"><%= stats.diskUsage || '0 GB' %></p>
-                            </div>
+                            <% if (stats.diskUsagePercent > 0) { %>
+                                <div class="text-right">
+                                    <div class="text-sm font-medium text-gray-600">%<%= stats.diskUsagePercent %></div>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
+                                        <div class="bg-blue-600 h-2 rounded-full" style="width: <%= stats.diskUsagePercent || 0 %>%"></div>
+                                    </div>
+                                </div>
+                            <% } %>
                         </div>
                     </div>
                     
                     <div class="bg-white rounded-lg shadow-md p-6 card-hover">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-green-100 text-green-600">
-                                <i class="fas fa-memory text-xl"></i>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                    <i class="fas fa-memory text-xl"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">RAM Kullanımı</p>
+                                    <p class="text-2xl font-bold text-gray-900"><%= stats.memoryUsage || '0 MB' %></p>
+                                    <% if (stats.memoryTotal) { %>
+                                        <p class="text-xs text-gray-500"><%= stats.memoryTotal %> toplam</p>
+                                    <% } %>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Bellek Kullanımı</p>
-                                <p class="text-2xl font-bold text-gray-900"><%= stats.memoryUsage || '0 MB' %></p>
-                            </div>
+                            <% if (stats.memoryUsagePercent > 0) { %>
+                                <div class="text-right">
+                                    <div class="text-sm font-medium text-gray-600">%<%= stats.memoryUsagePercent %></div>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: <%= stats.memoryUsagePercent || 0 %>%"></div>
+                                    </div>
+                                </div>
+                            <% } %>
                         </div>
                     </div>
                     
                     <div class="bg-white rounded-lg shadow-md p-6 card-hover">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
-                                <i class="fas fa-clock text-xl"></i>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                                    <i class="fas fa-microchip text-xl"></i>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">CPU Yükü</p>
+                                    <p class="text-2xl font-bold text-gray-900">%<%= stats.cpuUsage || 0 %></p>
+                                    <p class="text-xs text-gray-500">Load: <%= (stats.loadAverage || [0])[0] %></p>
+                                </div>
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Çalışma Süresi</p>
-                                <p class="text-2xl font-bold text-gray-900">
-                                    <%= Math.floor((stats.uptime || 0) / 3600) %>s
-                                </p>
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-gray-600">Çekirdek</div>
+                                <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
+                                    <div class="bg-yellow-600 h-2 rounded-full" style="width: <%= Math.min((stats.cpuUsage || 0), 100) %>%"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -131,11 +164,61 @@
                     <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                         <div class="flex items-center">
                             <div class="p-3 rounded-full bg-purple-100 text-purple-600">
-                                <i class="fab fa-node-js text-xl"></i>
+                                <i class="fas fa-clock text-xl"></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Node.js</p>
-                                <p class="text-2xl font-bold text-gray-900"><%= stats.nodeVersion || 'N/A' %></p>
+                                <p class="text-sm font-medium text-gray-600">Sistem Çalışma Süresi</p>
+                                <p class="text-lg font-bold text-gray-900">
+                                    <% 
+                                        const days = Math.floor((stats.systemUptime || 0) / 86400);
+                                        const hours = Math.floor(((stats.systemUptime || 0) % 86400) / 3600);
+                                    %>
+                                    <%= days %>g <%= hours %>s
+                                </p>
+                                <p class="text-xs text-gray-500">Panel: <%= Math.floor((stats.uptime || 0) / 60) %>dk</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Panel İstatistikleri -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-md p-6 text-white">
+                        <div class="flex items-center">
+                            <i class="fas fa-folder text-3xl opacity-80"></i>
+                            <div class="ml-4">
+                                <p class="text-sm opacity-90">Toplam Dosya</p>
+                                <p class="text-3xl font-bold"><%= stats.totalFiles || 0 %></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-md p-6 text-white">
+                        <div class="flex items-center">
+                            <i class="fas fa-database text-3xl opacity-80"></i>
+                            <div class="ml-4">
+                                <p class="text-sm opacity-90">Veritabanı</p>
+                                <p class="text-3xl font-bold"><%= stats.totalDatabases || 0 %></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-md p-6 text-white">
+                        <div class="flex items-center">
+                            <i class="fas fa-envelope text-3xl opacity-80"></i>
+                            <div class="ml-4">
+                                <p class="text-sm opacity-90">E-posta Hesabı</p>
+                                <p class="text-3xl font-bold"><%= stats.totalEmails || 0 %></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg shadow-md p-6 text-white">
+                        <div class="flex items-center">
+                            <i class="fas fa-globe text-3xl opacity-80"></i>
+                            <div class="ml-4">
+                                <p class="text-sm opacity-90">Domain</p>
+                                <p class="text-3xl font-bold"><%= stats.totalDomains || 0 %></p>
                             </div>
                         </div>
                     </div>
@@ -186,21 +269,43 @@
                         <i class="fas fa-history text-gray-600 mr-2"></i>
                         Son Aktiviteler
                     </h3>
-                    <div class="space-y-3">
-                        <div class="flex items-center p-3 bg-gray-50 rounded-md">
-                            <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-800">Sistem başlatıldı</p>
-                                <p class="text-xs text-gray-500">Bugün, <%= moment().format('HH:mm') %></p>
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        <% if (activities && activities.length > 0) { %>
+                            <% activities.forEach(activity => { %>
+                                <div class="flex items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors">
+                                    <div class="flex-shrink-0 mr-3">
+                                        <i class="<%= activityLogger.getActivityIcon(activity.action) %> text-lg"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-800 truncate">
+                                            <%= activity.details %>
+                                        </p>
+                                        <div class="flex items-center text-xs text-gray-500 mt-1">
+                                            <i class="fas fa-user mr-1"></i>
+                                            <span class="mr-3"><%= activity.username %></span>
+                                            <i class="fas fa-clock mr-1"></i>
+                                            <span><%= moment(activity.timestamp).format('DD/MM HH:mm') %></span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-<%= activityLogger.getActivityColor(activity.action) %>-100 text-<%= activityLogger.getActivityColor(activity.action) %>-800">
+                                            <%= activity.action.replace('_', ' ') %>
+                                        </span>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        <% } else { %>
+                            <div class="text-center py-8 text-gray-500">
+                                <i class="fas fa-inbox text-3xl mb-2"></i>
+                                <p>Henüz aktivite bulunmuyor</p>
                             </div>
-                        </div>
-                        <div class="flex items-center p-3 bg-gray-50 rounded-md">
-                            <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-800">Giriş yapıldı</p>
-                                <p class="text-xs text-gray-500">Kullanıcı: <%= username %></p>
-                            </div>
-                        </div>
+                        <% } %>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <a href="/activities" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                            <i class="fas fa-arrow-right mr-1"></i>
+                            Tüm aktiviteleri görüntüle
+                        </a>
                     </div>
                 </div>
             </main>
