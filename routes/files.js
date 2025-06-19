@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const archiver = require('archiver');
 const extract = require('extract-zip');
 
@@ -79,7 +80,9 @@ router.get('/', async (req, res) => {
             username: req.session.username,
             files: fileDetails,
             currentPath,
-            breadcrumbs: getBreadcrumbs(currentPath)
+            breadcrumbs: getBreadcrumbs(currentPath),
+            success: req.query.success,
+            error: req.query.error
         });
     } catch (error) {
         console.error('Dosya listesi alınamadı:', error);
@@ -88,7 +91,8 @@ router.get('/', async (req, res) => {
             files: [],
             currentPath: '',
             breadcrumbs: [],
-            error: 'Dosyalar yüklenemedi'
+            success: req.query.success,
+            error: req.query.error || 'Dosyalar yüklenemedi'
         });
     }
 });
@@ -143,20 +147,30 @@ router.post('/delete', async (req, res) => {
 // Dosya indirme
 router.get('/download/:filename', async (req, res) => {
     try {
-        const filename = req.params.filename;
+        const filename = decodeURIComponent(req.params.filename);
         const currentPath = req.query.path || '';
         const userDir = path.join(__dirname, '../user_files', req.session.username);
-        const filePath = path.join(userDir, currentPath, filename);
+        const filePath = path.resolve(path.join(userDir, currentPath, filename));
         
-        // Güvenlik kontrolü
-        if (!filePath.startsWith(userDir)) {
+        // Güvenlik kontrolü - path traversal saldırılarını engelle
+        if (!filePath.startsWith(path.resolve(userDir))) {
             return res.status(403).send('Yetkisiz erişim');
         }
         
-        res.download(filePath);
+        // Dosyanın var olup olmadığını kontrol et
+        const stats = await fs.stat(filePath);
+        if (!stats.isFile()) {
+            return res.status(404).send('Dosya bulunamadı');
+        }
+        
+        res.download(filePath, filename);
     } catch (error) {
         console.error('İndirme hatası:', error);
-        res.status(500).send('Dosya indirilemedi');
+        if (error.code === 'ENOENT') {
+            res.status(404).send('Dosya bulunamadı');
+        } else {
+            res.status(500).send('Dosya indirilemedi');
+        }
     }
 });
 

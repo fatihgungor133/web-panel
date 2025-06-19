@@ -182,7 +182,44 @@
                                                         <%= file.name %>
                                                     </a>
                                                 <% } else { %>
-                                                    <i class="fas fa-file text-gray-400 mr-3"></i>
+                                                    <%
+                                                        const ext = file.name.split('.').pop().toLowerCase();
+                                                        let iconClass = 'fas fa-file text-gray-400';
+                                                        let iconColor = 'text-gray-400';
+                                                        
+                                                        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+                                                            iconClass = 'fas fa-image';
+                                                            iconColor = 'text-green-500';
+                                                        } else if (['mp4', 'avi', 'mov', 'wmv', 'flv'].includes(ext)) {
+                                                            iconClass = 'fas fa-video';
+                                                            iconColor = 'text-purple-500';
+                                                        } else if (['mp3', 'wav', 'flac', 'aac'].includes(ext)) {
+                                                            iconClass = 'fas fa-music';
+                                                            iconColor = 'text-pink-500';
+                                                        } else if (['pdf'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-pdf';
+                                                            iconColor = 'text-red-500';
+                                                        } else if (['doc', 'docx'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-word';
+                                                            iconColor = 'text-blue-600';
+                                                        } else if (['xls', 'xlsx'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-excel';
+                                                            iconColor = 'text-green-600';
+                                                        } else if (['ppt', 'pptx'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-powerpoint';
+                                                            iconColor = 'text-orange-500';
+                                                        } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-archive';
+                                                            iconColor = 'text-yellow-600';
+                                                        } else if (['txt', 'md'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-alt';
+                                                            iconColor = 'text-gray-600';
+                                                        } else if (['html', 'css', 'js', 'php', 'py', 'java', 'cpp', 'c'].includes(ext)) {
+                                                            iconClass = 'fas fa-file-code';
+                                                            iconColor = 'text-indigo-500';
+                                                        }
+                                                    %>
+                                                    <i class="<%= iconClass %> <%= iconColor %> mr-3"></i>
                                                     <span class="text-gray-900"><%= file.name %></span>
                                                 <% } %>
                                             </div>
