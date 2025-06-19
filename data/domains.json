@@ -1,0 +1,18 @@
+[
+  {
+    "name": "ornek.com",
+    "type": "Ana Domain",
+    "created": "2024-01-01T00:00:00.000Z",
+    "expires": "2025-01-01T00:00:00.000Z",
+    "status": "active",
+    "ssl": true
+  },
+  {
+    "name": "test.ornek.com",
+    "type": "Alt Domain",
+    "created": "2024-01-15T00:00:00.000Z",
+    "expires": null,
+    "status": "active",
+    "ssl": false
+  }
+]

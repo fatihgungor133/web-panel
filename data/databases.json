@@ -1,0 +1,16 @@
+[
+  {
+    "name": "website_db",
+    "size": "15.2 MB",
+    "tables": 8,
+    "created": "2024-01-15T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "name": "blog_db",
+    "size": "3.8 MB",
+    "tables": 5,
+    "created": "2024-02-01T00:00:00.000Z",
+    "status": "active"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "full_backup_20240115.zip",
+    "type": "Tam Yedek",
+    "size": "450 MB",
+    "created": "2024-01-15T00:00:00.000Z",
+    "status": "completed"
+  },
+  {
+    "name": "database_backup_20240110.sql",
+    "type": "Veritabanı",
+    "size": "25 MB",
+    "created": "2024-01-10T00:00:00.000Z",
+    "status": "completed"
+  }
+]

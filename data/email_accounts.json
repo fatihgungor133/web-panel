@@ -1,0 +1,16 @@
+[
+  {
+    "email": "info@ornek.com",
+    "quota": "1 GB",
+    "used": "256 MB",
+    "created": "2024-01-10T00:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "email": "destek@ornek.com",
+    "quota": "500 MB",
+    "used": "120 MB",
+    "created": "2024-01-15T00:00:00.000Z",
+    "status": "active"
+  }
+]

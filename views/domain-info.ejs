@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Bilgileri - <%= domain.name %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <%- include('partials/sidebar', { username: username, currentPage: 'domains' }) %>
+
+        <!-- Ana İçerik -->
+        <div class="flex-1 ml-64 p-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-globe mr-2"></i>
+                        <%= domain.name %> - Domain Bilgileri
+                    </h1>
+                    <a href="/domains" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        <i class="fas fa-arrow-left mr-2"></i>Geri Dön
+                    </a>
+                </div>
+
+                <!-- Domain Genel Bilgileri -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-blue-800 mb-3">
+                            <i class="fas fa-info-circle mr-2"></i>Genel Bilgiler
+                        </h3>
+                        <div class="space-y-2">
+                            <p><strong>Domain:</strong> <%= domain.name %></p>
+                            <p><strong>Tip:</strong> <%= domain.type %></p>
+                            <p><strong>Durum:</strong> 
+                                <span class="px-2 py-1 rounded text-sm <%= domain.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                                    <%= domain.status === 'active' ? 'Aktif' : 'Pasif' %>
+                                </span>
+                            </p>
+                            <p><strong>SSL:</strong> 
+                                <span class="px-2 py-1 rounded text-sm <%= domain.ssl ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+                                    <%= domain.ssl ? 'Aktif' : 'Pasif' %>
+                                </span>
+                            </p>
+                            <p><strong>Oluşturma:</strong> <%= new Date(domain.created).toLocaleDateString('tr-TR') %></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-green-800 mb-3">
+                            <i class="fas fa-database mr-2"></i>Veritabanı Bilgileri
+                        </h3>
+                        <div class="space-y-2">
+                            <p><strong>Veritabanı:</strong> <%= domain.dbName || 'Yok' %></p>
+                            <p><strong>Kullanıcı:</strong> <%= domain.dbUser || 'Yok' %></p>
+                            <% if (domain.dbPassword) { %>
+                            <p><strong>Şifre:</strong> 
+                                <span id="dbPassword" class="blur-sm">*************</span>
+                                <button onclick="togglePassword('dbPassword')" class="ml-2 text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </p>
+                            <script>
+                                function togglePassword(id) {
+                                    const element = document.getElementById(id);
+                                    const actualPassword = '<%= domain.dbPassword %>';
+                                    if (element.classList.contains('blur-sm')) {
+                                        element.classList.remove('blur-sm');
+                                        element.textContent = actualPassword;
+                                    } else {
+                                        element.classList.add('blur-sm');
+                                        element.textContent = '*************';
+                                    }
+                                }
+                            </script>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-purple-800 mb-3">
+                            <i class="fas fa-upload mr-2"></i>FTP Bilgileri
+                        </h3>
+                        <div class="space-y-2">
+                            <p><strong>FTP Kullanıcı:</strong> <%= domain.ftpUser || 'Yok' %></p>
+                            <% if (domain.ftpPassword) { %>
+                            <p><strong>FTP Şifre:</strong> 
+                                <span id="ftpPassword" class="blur-sm">*************</span>
+                                <button onclick="togglePassword('ftpPassword')" class="ml-2 text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </p>
+                            <% } %>
+                            <p><strong>Sunucu:</strong> <%= req.get('host').split(':')[0] %></p>
+                            <p><strong>Port:</strong> 21</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-orange-800 mb-3">
+                            <i class="fas fa-folder mr-2"></i>Dosya Yolları
+                        </h3>
+                        <div class="space-y-2">
+                            <p><strong>Web Root:</strong><br>
+                                <code class="bg-gray-100 px-2 py-1 rounded text-sm">/var/www/html/<%= domain.username %>/<%= domain.name %></code>
+                            </p>
+                            <p><strong>Log Dosyası:</strong><br>
+                                <code class="bg-gray-100 px-2 py-1 rounded text-sm">/var/log/apache2/<%= domain.name %>_access.log</code>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SSL Yönetimi -->
+                <div class="bg-yellow-50 p-4 rounded-lg mb-6">
+                    <h3 class="text-lg font-semibold text-yellow-800 mb-3">
+                        <i class="fas fa-lock mr-2"></i>SSL Sertifika Yönetimi
+                    </h3>
+                    <% if (!domain.ssl) { %>
+                    <form action="/domains/create-ssl" method="POST" class="flex items-center space-x-4">
+                        <input type="hidden" name="domainName" value="<%= domain.name %>">
+                        <input type="email" name="email" placeholder="E-posta adresiniz" required 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            <i class="fas fa-plus mr-2"></i>SSL Oluştur
+                        </button>
+                    </form>
+                    <p class="text-sm text-gray-600 mt-2">Let's Encrypt ile ücretsiz SSL sertifikası oluşturun.</p>
+                    <% } else { %>
+                    <div class="flex items-center text-green-600">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        SSL sertifikası aktif. Siteniz güvenli bağlantı ile çalışıyor.
+                    </div>
+                    <% } %>
+                </div>
+
+                <!-- Log Dosyaları -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Access Logs -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-eye mr-2"></i>Erişim Logları (Son 50)
+                        </h3>
+                        <div class="bg-black text-green-400 p-3 rounded font-mono text-xs h-64 overflow-y-auto">
+                            <% if (accessLogs && accessLogs.length > 0) { %>
+                                <% accessLogs.forEach(log => { %>
+                                    <div><%= log %></div>
+                                <% }) %>
+                            <% } else { %>
+                                <div class="text-gray-500">Henüz erişim logu yok</div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <!-- Error Logs -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Hata Logları (Son 50)
+                        </h3>
+                        <div class="bg-black text-red-400 p-3 rounded font-mono text-xs h-64 overflow-y-auto">
+                            <% if (errorLogs && errorLogs.length > 0) { %>
+                                <% errorLogs.forEach(log => { %>
+                                    <div><%= log %></div>
+                                <% }) %>
+                            <% } else { %>
+                                <div class="text-gray-500">Hata logu yok (Bu iyi bir şey!)</div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Domain İşlemleri -->
+                <div class="mt-6 flex space-x-4">
+                    <a href="http://<%= domain.name %>" target="_blank" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-external-link-alt mr-2"></i>Siteyi Görüntüle
+                    </a>
+                    
+                    <% if (!domain.ssl) { %>
+                    <a href="https://<%= domain.name %>" target="_blank" 
+                       class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        <i class="fas fa-lock mr-2"></i>HTTPS'yi Dene
+                    </a>
+                    <% } %>
+                    
+                    <button onclick="if(confirm('Bu domain silinecek. Emin misiniz?')) { 
+                                document.getElementById('deleteForm').submit(); }" 
+                            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        <i class="fas fa-trash mr-2"></i>Domain Sil
+                    </button>
+                </div>
+
+                <!-- Gizli silme formu -->
+                <form id="deleteForm" action="/domains/delete" method="POST" style="display: none;">
+                    <input type="hidden" name="domainName" value="<%= domain.name %>">
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
