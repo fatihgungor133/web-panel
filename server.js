@@ -167,28 +167,131 @@ app.get('/logout', async (req, res) => {
 
 // Sistem istatistikleri
 async function getSystemStats() {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
     const stats = {
         diskUsage: '0 GB',
+        diskFree: '0 GB',
+        diskTotal: '0 GB',
+        diskPercent: '0%',
         memoryUsage: '0 MB',
+        memoryFree: '0 MB', 
+        memoryTotal: '0 MB',
+        memoryPercent: '0%',
+        cpuUsage: '0%',
+        loadAverage: '0.00',
         uptime: process.uptime(),
+        systemUptime: '0 gün',
         nodeVersion: process.version,
-        platform: process.platform
+        platform: process.platform,
+        processes: '0',
+        networkConnections: '0'
     };
     
     try {
-        // Disk kullanımı (basit hesaplama)
+        // Disk kullanımı (df komutu ile)
+        try {
+            const { stdout: diskInfo } = await execAsync('df -h / | tail -1');
+            const diskParts = diskInfo.trim().split(/\s+/);
+            if (diskParts.length >= 6) {
+                stats.diskTotal = diskParts[1];
+                stats.diskUsage = diskParts[2];
+                stats.diskFree = diskParts[3];
+                stats.diskPercent = diskParts[4];
+            }
+        } catch (error) {
+            console.log('Disk bilgisi alınamadı:', error.message);
+        }
+
+        // Bellek kullanımı (free komutu ile)
+        try {
+            const { stdout: memInfo } = await execAsync('free -h | grep "Mem:"');
+            const memParts = memInfo.trim().split(/\s+/);
+            if (memParts.length >= 4) {
+                stats.memoryTotal = memParts[1];
+                stats.memoryUsage = memParts[2];
+                stats.memoryFree = memParts[3];
+                
+                // Yüzde hesapla
+                const totalBytes = parseMemory(memParts[1]);
+                const usedBytes = parseMemory(memParts[2]);
+                if (totalBytes > 0) {
+                    stats.memoryPercent = Math.round((usedBytes / totalBytes) * 100) + '%';
+                }
+            }
+        } catch (error) {
+            console.log('Bellek bilgisi alınamadı:', error.message);
+            // Fallback: Node.js process bellek kullanımı
+            const memUsage = process.memoryUsage();
+            stats.memoryUsage = formatBytes(memUsage.rss);
+        }
+
+        // CPU kullanımı (top komutu ile)
+        try {
+            const { stdout: cpuInfo } = await execAsync('top -bn1 | grep "Cpu(s)" | head -1');
+            const cpuMatch = cpuInfo.match(/(\d+\.?\d*)%\s*us/);
+            if (cpuMatch) {
+                stats.cpuUsage = cpuMatch[1] + '%';
+            }
+        } catch (error) {
+            console.log('CPU bilgisi alınamadı:', error.message);
+        }
+
+        // Load average
+        try {
+            const { stdout: loadInfo } = await execAsync('uptime | grep -o "load average.*" | cut -d" " -f3');
+            stats.loadAverage = loadInfo.trim().replace(',', '');
+        } catch (error) {
+            console.log('Load average alınamadı:', error.message);
+        }
+
+        // Sistem uptime
+        try {
+            const { stdout: uptimeInfo } = await execAsync('uptime -p');
+            stats.systemUptime = uptimeInfo.trim().replace('up ', '');
+        } catch (error) {
+            console.log('Sistem uptime alınamadı:', error.message);
+        }
+
+        // Aktif process sayısı
+        try {
+            const { stdout: processCount } = await execAsync('ps aux | wc -l');
+            stats.processes = (parseInt(processCount.trim()) - 1).toString(); // Header satırını çıkar
+        } catch (error) {
+            console.log('Process sayısı alınamadı:', error.message);
+        }
+
+        // Network bağlantı sayısı
+        try {
+            const { stdout: netConnections } = await execAsync('netstat -an | grep ESTABLISHED | wc -l');
+            stats.networkConnections = netConnections.trim();
+        } catch (error) {
+            console.log('Network bağlantı sayısı alınamadı:', error.message);
+        }
+
+        // User files disk kullanımı (eski kod)
         const userFilesPath = path.join(__dirname, 'user_files');
-        const size = await getDirSize(userFilesPath);
-        stats.diskUsage = formatBytes(size);
+        const userFilesSize = await getDirSize(userFilesPath);
+        stats.userFilesSize = formatBytes(userFilesSize);
         
-        // Bellek kullanımı
-        const memUsage = process.memoryUsage();
-        stats.memoryUsage = formatBytes(memUsage.rss);
     } catch (error) {
         console.error('İstatistikler alınırken hata:', error);
     }
     
     return stats;
+}
+
+// Bellek string'ini byte'a çevir (K, M, G için)
+function parseMemory(memStr) {
+    const units = { 'K': 1024, 'M': 1024*1024, 'G': 1024*1024*1024 };
+    const match = memStr.match(/^([\d.]+)([KMG]?)i?$/);
+    if (!match) return 0;
+    
+    const value = parseFloat(match[1]);
+    const unit = match[2] || '';
+    return value * (units[unit] || 1);
 }
 
 // Klasör boyutunu hesapla

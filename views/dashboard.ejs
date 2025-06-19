@@ -100,15 +100,15 @@
                                     <p class="text-sm font-medium text-gray-600">Disk Kullanımı</p>
                                     <p class="text-2xl font-bold text-gray-900"><%= stats.diskUsage || '0 GB' %></p>
                                     <% if (stats.diskTotal) { %>
-                                        <p class="text-xs text-gray-500"><%= stats.diskTotal %> toplam</p>
+                                        <p class="text-xs text-gray-500"><%= stats.diskTotal %> toplam • <%= stats.diskFree %> boş</p>
                                     <% } %>
                                 </div>
                             </div>
-                            <% if (stats.diskUsagePercent > 0) { %>
+                            <% if (stats.diskPercent) { %>
                                 <div class="text-right">
-                                    <div class="text-sm font-medium text-gray-600">%<%= stats.diskUsagePercent %></div>
+                                    <div class="text-sm font-medium text-gray-600"><%= stats.diskPercent %></div>
                                     <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
-                                        <div class="bg-blue-600 h-2 rounded-full" style="width: <%= stats.diskUsagePercent || 0 %>%"></div>
+                                        <div class="bg-blue-600 h-2 rounded-full" style="width: <%= stats.diskPercent ? stats.diskPercent.replace('%', '') + '%' : '0%' %>"></div>
                                     </div>
                                 </div>
                             <% } %>
@@ -125,15 +125,15 @@
                                     <p class="text-sm font-medium text-gray-600">RAM Kullanımı</p>
                                     <p class="text-2xl font-bold text-gray-900"><%= stats.memoryUsage || '0 MB' %></p>
                                     <% if (stats.memoryTotal) { %>
-                                        <p class="text-xs text-gray-500"><%= stats.memoryTotal %> toplam</p>
+                                        <p class="text-xs text-gray-500"><%= stats.memoryTotal %> toplam • <%= stats.memoryFree %> boş</p>
                                     <% } %>
                                 </div>
                             </div>
-                            <% if (stats.memoryUsagePercent > 0) { %>
+                            <% if (stats.memoryPercent && stats.memoryPercent !== '0%') { %>
                                 <div class="text-right">
-                                    <div class="text-sm font-medium text-gray-600">%<%= stats.memoryUsagePercent %></div>
+                                    <div class="text-sm font-medium text-gray-600"><%= stats.memoryPercent %></div>
                                     <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
-                                        <div class="bg-green-600 h-2 rounded-full" style="width: <%= stats.memoryUsagePercent || 0 %>%"></div>
+                                        <div class="bg-green-600 h-2 rounded-full" style="width: <%= stats.memoryPercent ? stats.memoryPercent.replace('%', '') + '%' : '0%' %>"></div>
                                     </div>
                                 </div>
                             <% } %>
@@ -147,17 +147,19 @@
                                     <i class="fas fa-microchip text-xl"></i>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">CPU Yükü</p>
-                                    <p class="text-2xl font-bold text-gray-900">%<%= stats.cpuUsage || 0 %></p>
-                                    <p class="text-xs text-gray-500">Load: <%= (stats.loadAverage || [0])[0] %></p>
+                                    <p class="text-sm font-medium text-gray-600">CPU Kullanımı</p>
+                                    <p class="text-2xl font-bold text-gray-900"><%= stats.cpuUsage || '0%' %></p>
+                                    <p class="text-xs text-gray-500">Load Avg: <%= stats.loadAverage || '0.00' %></p>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <div class="text-sm font-medium text-gray-600">Çekirdek</div>
-                                <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
-                                    <div class="bg-yellow-600 h-2 rounded-full" style="width: <%= Math.min((stats.cpuUsage || 0), 100) %>%"></div>
+                            <% if (stats.cpuUsage && stats.cpuUsage !== '0%') { %>
+                                <div class="text-right">
+                                    <div class="text-sm font-medium text-gray-600">Yük</div>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mt-1">
+                                                                                 <div class="bg-yellow-600 h-2 rounded-full" style="width: <%= Math.min(parseFloat((stats.cpuUsage || '0%').replace('%', '')) || 0, 100) %>%"></div>
+                                    </div>
                                 </div>
-                            </div>
+                            <% } %>
                         </div>
                     </div>
                     
@@ -167,15 +169,66 @@
                                 <i class="fas fa-clock text-xl"></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-600">Sistem Çalışma Süresi</p>
+                                <p class="text-sm font-medium text-gray-600">Sistem Uptime</p>
                                 <p class="text-lg font-bold text-gray-900">
-                                    <% 
-                                        const days = Math.floor((stats.systemUptime || 0) / 86400);
-                                        const hours = Math.floor(((stats.systemUptime || 0) % 86400) / 3600);
-                                    %>
-                                    <%= days %>g <%= hours %>s
+                                    <%= stats.systemUptime || '0 gün' %>
                                 </p>
-                                <p class="text-xs text-gray-500">Panel: <%= Math.floor((stats.uptime || 0) / 60) %>dk</p>
+                                <p class="text-xs text-gray-500">Panel: <%= Math.floor((stats.uptime || 0) / 60) %> dakika</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ek Sistem Bilgileri -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                                <i class="fas fa-tasks text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Aktif Process</p>
+                                <p class="text-2xl font-bold text-gray-900"><%= stats.processes || '0' %></p>
+                                <p class="text-xs text-gray-500">Çalışan süreç</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-cyan-100 text-cyan-600">
+                                <i class="fas fa-network-wired text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Network Bağlantı</p>
+                                <p class="text-2xl font-bold text-gray-900"><%= stats.networkConnections || '0' %></p>
+                                <p class="text-xs text-gray-500">Aktif bağlantı</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-orange-100 text-orange-600">
+                                <i class="fas fa-folder-open text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Kullanıcı Dosyaları</p>
+                                <p class="text-2xl font-bold text-gray-900"><%= stats.userFilesSize || '0 B' %></p>
+                                <p class="text-xs text-gray-500">Panel dosyaları</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-pink-100 text-pink-600">
+                                <i class="fab fa-node-js text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600">Node.js</p>
+                                <p class="text-lg font-bold text-gray-900"><%= stats.nodeVersion || 'N/A' %></p>
+                                <p class="text-xs text-gray-500"><%= stats.platform || 'Unknown' %> platform</p>
                             </div>
                         </div>
                     </div>
