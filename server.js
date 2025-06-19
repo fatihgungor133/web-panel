@@ -12,7 +12,7 @@ const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware - CSP ayarları ile
+// Middleware - CSP ayarları ile (IP erişimi için optimize)
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -20,22 +20,28 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "https:"],
+            imgSrc: ["'self'", "data:", "https:", "http:"],
             connectSrc: ["'self'"],
-            formAction: ["'self'", "https:", "http:"], // Form gönderimini her protokole izin ver
+            formAction: ["'self'", "https:", "http:"],
             frameAncestors: ["'none'"],
-            objectSrc: ["'none'"],
-            upgradeInsecureRequests: []
+            objectSrc: ["'none'"]
+            // upgradeInsecureRequests kaldırıldı - IP erişimi için
         }
     }
 }));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// HTTPS yönlendirme (production için)
+// HTTPS yönlendirme (sadece domain adı varsa)
 app.use((req, res, next) => {
-    if (process.env.NODE_ENV === 'production' && req.header('x-forwarded-proto') !== 'https') {
-        res.redirect(`https://${req.header('host')}${req.url}`);
+    const host = req.header('host');
+    const isIP = /^\d+\.\d+\.\d+\.\d+/.test(host);
+    
+    if (process.env.NODE_ENV === 'production' && 
+        process.env.FORCE_HTTPS === 'true' && 
+        !isIP && 
+        req.header('x-forwarded-proto') !== 'https') {
+        res.redirect(`https://${host}${req.url}`);
     } else {
         next();
     }
@@ -51,7 +57,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true', 
+        secure: false, // IP erişimi için false
         maxAge: 24 * 60 * 60 * 1000,
         sameSite: 'lax'
     }
