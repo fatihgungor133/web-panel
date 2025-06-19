@@ -43,7 +43,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/web-panel
-ExecStart=/usr/bin/node server-https.js
+ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
