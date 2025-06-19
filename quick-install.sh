@@ -14,9 +14,9 @@ fi
 echo "📦 Sistem güncelleniyor..."
 apt update -qq > /dev/null 2>&1
 
-echo "📥 Node.js kuruluyor..."
+echo "📥 Node.js ve OpenSSL kuruluyor..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash - > /dev/null 2>&1
-apt install -y nodejs git > /dev/null 2>&1
+apt install -y nodejs git openssl > /dev/null 2>&1
 
 echo "📂 Panel indiriliyor..."
 cd /opt
@@ -28,23 +28,26 @@ echo "⚙️ Bağımlılıklar yükleniyor..."
 npm install --silent > /dev/null 2>&1
 
 echo "📁 Klasörler oluşturuluyor..."
-mkdir -p logs backups user_files/admin data
+mkdir -p logs backups user_files/admin data ssl
 
-echo "🔧 Servis oluşturuluyor..."
+echo "🔒 SSL sertifikası oluşturuluyor..."
+bash ssl-setup.sh
+
+echo "🔧 HTTPS servisi oluşturuluyor..."
 cat > /etc/systemd/system/hosting-panel.service << 'EOF'
 [Unit]
-Description=Web Hosting Panel
+Description=Web Hosting Panel HTTPS
 After=network.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/web-panel
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node server-https.js
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
-Environment=PORT=3000
+Environment=HTTPS_PORT=443
 
 [Install]
 WantedBy=multi-user.target
@@ -55,9 +58,9 @@ systemctl daemon-reload
 systemctl enable hosting-panel > /dev/null 2>&1
 systemctl start hosting-panel
 
-echo "🔥 Firewall ayarlanıyor..."
+echo "🔥 Firewall HTTPS için ayarlanıyor..."
 ufw --force enable > /dev/null 2>&1
-ufw allow 3000 > /dev/null 2>&1
+ufw allow 443 > /dev/null 2>&1
 ufw allow ssh > /dev/null 2>&1
 
 # IP tespiti
@@ -68,20 +71,25 @@ echo ""
 echo "🎉 KURULUM TAMAMLANDI!"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🌐 PANEL ERİŞİM ADRESLERİ:"
+echo "🔒 HTTPS PANEL ERİŞİM ADRESLERİ:"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📍 Yerel Ağ: http://${SERVER_IP}:3000"
+echo "📍 Yerel Ağ: https://${SERVER_IP}"
 if [ "$EXTERNAL_IP" != "N/A" ]; then
-    echo "🌍 İnternet: http://${EXTERNAL_IP}:3000"
+    echo "🌍 İnternet: https://${EXTERNAL_IP}"
 fi
-echo "🔗 Giriş: http://${SERVER_IP}:3000/login"
+echo "🔗 Giriş: https://${SERVER_IP}/login"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "🔐 GİRİŞ BİLGİLERİ:"
 echo "   👤 Kullanıcı: admin"
 echo "   🔑 Şifre: admin123"
 echo ""
-echo "🎯 Panel şu anda çalışıyor ve hazır!"
+echo "🎯 Panel şu anda HTTPS üzerinden çalışıyor ve hazır!"
+echo ""
+echo "⚠️  TARAYICI UYARISI:"
+echo "   🛡️  Self-signed sertifika kullanıldığı için"
+echo "   🔓 tarayıcınız güvenlik uyarısı verecek"
+echo "   ✅ 'Gelişmiş' > 'Güvensiz devam et' seçin"
 echo ""
 echo "📚 YARDIMCI KOMUTLAR:"
 echo "   🔧 Panel durumu: systemctl status hosting-panel"
